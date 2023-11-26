@@ -1,0 +1,11 @@
+{
+	"id": "semantic",
+	"name": "Semantic",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "auto suggests related notes for you to link to",
+	"author": "Obsidian",
+	"authorUrl": "https://github.com/andrew-r-thomas",
+	"fundingUrl": "",
+	"isDesktopOnly": true
+}
