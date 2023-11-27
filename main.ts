@@ -1,5 +1,7 @@
-import { App, ButtonComponent, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { processFiles } from 'utils';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import * as encoder from "@tensorflow-models/universal-sentence-encoder"
+import "@tensorflow/tfjs"
+import { index } from "voy-search"
 
 // Remember to rename these classes and interfaces!
 
@@ -127,8 +129,38 @@ class SampleSettingTab extends PluginSettingTab {
 			.setDesc("this might take a while")
 			.addButton((button) => {
 				button.setButtonText("Run").onClick(async () => {
-					await processFiles(this.app)
+					await this.processFiles()
 				})
 			})
 	}
+
+	processFiles = async () => {
+
+		const files = this.app.vault.getMarkdownFiles()
+		const docs = await Promise.all(files.map(async f => await this.app.vault.cachedRead(f)))
+		const embedder = await encoder.load()
+		const embeddings = await (await embedder.embed(docs)).array()
+
+		const idx = index({
+			embeddings: await Promise.all(embeddings.map(
+				async (e, i) => {
+					await this.app.fileManager.processFrontMatter(
+						files[i],
+						(front) => {
+							front["vec_idx"] = i
+						}
+					)
+					return {
+						id: i.toString(),
+						title: files[i].basename,
+						url: files[i].path,
+						embeddings: e
+					}
+				}
+			))
+		})
+
+		await this.app.vault.create(this.app.vault.getRoot().path += "/.vector_index", idx)
+	}
 }
+
